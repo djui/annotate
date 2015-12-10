@@ -71,7 +71,7 @@ func actionMain(c *cli.Context) {
 }
 
 func fromPipe(c *cli.Context) {
-	prefix, color := getPrefixAndColor(c, ">>>")
+	prefix, color := getPrefixAndColor(c, ">>> ")
 	stdoutPrefix, _ := formatPrefix(prefix, color, c.Bool("color"))
 
 	r := bufio.NewReader(os.Stdin)
@@ -81,7 +81,7 @@ func fromPipe(c *cli.Context) {
 func fromCommand(c *cli.Context) {
 	name, args := splitArgs(c.Args())
 
-	prefix, color := getPrefixAndColor(c, name)
+	prefix, color := getPrefixAndColor(c, name+" ")
 	stdoutPrefix, stderrPrefix := formatPrefix(prefix, color, c.Bool("color"))
 	stdoutAnnotator := func(r io.Reader, w io.Writer) { annotate(r, w, stdoutPrefix) }
 	stderrAnnotator := func(r io.Reader, w io.Writer) { annotate(r, w, stderrPrefix) }
@@ -149,15 +149,15 @@ func formatPrefix(p string, color uint32, force bool) (stdoutPrefix string, stde
 	hasStderr := terminal.IsTerminal(int(os.Stderr.Fd()))
 
 	if color > 0 && (force || hasStdout) {
-		stdoutPrefix = fmt.Sprintf("\x1b[3%dm%s\x1b[0m ", color, p)
+		stdoutPrefix = fmt.Sprintf("\x1b[3%dm%s\x1b[0m", color, p)
 	} else {
-		stdoutPrefix = fmt.Sprintf("%s ", p)
+		stdoutPrefix = p
 	}
 
 	if color > 0 && (force || hasStderr) {
-		stderrPrefix = fmt.Sprintf("\x1b[3%d;1m%s\x1b[0m ", color, p)
+		stderrPrefix = fmt.Sprintf("\x1b[3%d;1m%s\x1b[0m", color, p)
 	} else {
-		stderrPrefix = fmt.Sprintf("%s ", p)
+		stderrPrefix = p
 	}
 
 	// TODO: Allow formatting string (like `date`)
