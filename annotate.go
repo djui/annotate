@@ -25,25 +25,25 @@ func main() {
 	app.HideHelp = true
 
 	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "prefix, p",
+			Usage: "Override the default prefix",
+		},
 		cli.BoolFlag{
-			Name:  "color, c",
-			Usage: "Force colored output",
+			Name:  "stdout, o",
+			Usage: "Only annotate standard output",
 		},
 		cli.BoolFlag{
 			Name:  "stderr, e",
 			Usage: "Only annotate standard error",
 		},
 		cli.BoolFlag{
-			Name:  "no-color, n",
-			Usage: "No colored output",
+			Name:  "color, c",
+			Usage: "Force colored output",
 		},
 		cli.BoolFlag{
-			Name:  "stdout, o",
-			Usage: "Only annotate standard output",
-		},
-		cli.StringFlag{
-			Name:  "prefix, p",
-			Usage: "Override the default prefix",
+			Name:  "no-color, n",
+			Usage: "No colored output",
 		},
 	}
 

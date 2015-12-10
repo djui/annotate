@@ -29,9 +29,9 @@ or:
        ?
 
     GLOBAL OPTIONS:
-       --color, -c		Force colored output
+       --prefix, -p 	Override the default prefix
+       --stdout, -o		Only annotate standard output
        --stderr, -e		Only annotate standard error
        --no-color, -n	No colored output
-       --stdout, -o		Only annotate standard output
-       --prefix, -p 	Override the default prefix
+       --color, -c		Force colored output
        --version, -v	print the version
