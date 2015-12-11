@@ -75,15 +75,15 @@ func actionMain(c *cli.Context) {
 	}
 
 	if len(c.Args()) > 0 {
-		fromCommand(c)
+		annotateCommand(c)
 	} else if !terminal.IsTerminal(int(os.Stdin.Fd())) {
-		fromPipe(c)
+		annotatePipe(c)
 	} else {
 		cli.ShowAppHelp(c)
 	}
 }
 
-func fromPipe(c *cli.Context) {
+func annotatePipe(c *cli.Context) {
 	prefix, color := getPrefixAndColor(c, ">>> ")
 	stdoutPrefix, _ := formatPrefix(prefix, color, c.Bool("color"))
 
@@ -91,7 +91,7 @@ func fromPipe(c *cli.Context) {
 	annotate(r, os.Stdout, stdoutPrefix)
 }
 
-func fromCommand(c *cli.Context) {
+func annotateCommand(c *cli.Context) {
 	name, args := splitArgs(c.Args())
 
 	prefix, color := getPrefixAndColor(c, name+" ")
