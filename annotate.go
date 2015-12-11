@@ -26,24 +26,24 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "prefix, p",
-			Usage: "Override the default prefix",
+			Name:  "p, prefix",
+			Usage: "     Override the default prefix",
 		},
 		cli.BoolFlag{
-			Name:  "stdout, o",
-			Usage: "Only annotate standard output",
+			Name:  "o, stdout",
+			Usage: "     Only annotate standard output",
 		},
 		cli.BoolFlag{
-			Name:  "stderr, e",
-			Usage: "Only annotate standard error",
+			Name:  "e, stderr",
+			Usage: "     Only annotate standard error",
 		},
 		cli.BoolFlag{
-			Name:  "color, c",
-			Usage: "Force colored output",
+			Name:  "c, color",
+			Usage: "      Force colored output",
 		},
 		cli.BoolFlag{
-			Name:  "no-color, n",
-			Usage: "No colored output",
+			Name:  "n, no-color",
+			Usage: "    No colored output",
 		},
 	}
 
