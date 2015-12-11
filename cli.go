@@ -33,6 +33,15 @@ func main() {
 	app.HideVersion = true
 
 	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "a, print-args",
+			Usage: "Print command with arguments before output",
+		},
+		cli.StringFlag{
+			Name:  "s, print-separator",
+			Value: "=",
+			Usage: "Print separator before and after output",
+		},
 		cli.StringFlag{
 			Name:  "p, prefix",
 			Usage: "Override the default prefix",
@@ -92,9 +101,17 @@ func annotatePipe(c *cli.Context) {
 	prefix, color := getPrefixAndColor(c, name, defaultFormat)
 	stdoutPrefix, _ := preparePrefix(prefix, color, c.Bool("color"))
 	stdoutFormatter := func() string { return formatPrefix(name, stdoutPrefix, os.Stdout) }
-
 	rw := newReadWriter(bufio.NewReader(os.Stdin), os.Stdout)
-	annotate(rw, stdoutFormatter)
+	if c.IsSet("print-separator") {
+		printSeparator(c.String("print-separator"), stdoutFormatter)
+	}
+	err := annotate(rw, stdoutFormatter)
+	if c.IsSet("print-separator") {
+		printSeparator(c.String("print-separator"), stdoutFormatter)
+	}
+	if err != nil {
+		halt(err)
+	}
 }
 
 func annotateCommand(c *cli.Context) {
@@ -120,10 +137,18 @@ func annotateCommand(c *cli.Context) {
 	}
 
 	// Pass-through environment variables
-	for _, env := range os.Environ() {
-		cmd.Env = append(cmd.Env, env)
+	cmd.Env = os.Environ()
+
+	if c.Bool("print-args") {
+		printArguments(c.Args(), stdoutFormatter)
+	}
+	if c.IsSet("print-separator") {
+		printSeparator(c.String("print-separator"), stdoutFormatter)
 	}
 	err := cmd.Run()
+	if c.IsSet("print-separator") {
+		printSeparator(c.String("print-separator"), stdoutFormatter)
+	}
 
 	if exiterr, ok := err.(*exec.ExitError); ok {
 		if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {

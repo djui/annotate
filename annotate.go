@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 )
 
 type readWriter struct {
@@ -24,14 +26,22 @@ func pipe(w io.Writer, f func(*readWriter)) io.Writer {
 }
 
 // annotate each line read from "r" with prefix and write to "w".
-func annotate(r *readWriter, f func() string) {
-	s := bufio.NewScanner(r)
-
+func annotate(rw *readWriter, prefix func() string) error {
+	s := bufio.NewScanner(rw)
 	for s.Scan() {
-		fmt.Fprintf(r, "%s%s\n", f(), s.Bytes())
+		printAnnotated(rw, prefix, s.Text())
 	}
+	return s.Err()
+}
 
-	if err := s.Err(); err != nil {
-		halt(err)
-	}
+func printArguments(args []string, prefix func() string) {
+	printAnnotated(os.Stdout, prefix, strings.Join(args, " "))
+}
+
+func printSeparator(sep string, prefix func() string) {
+	printAnnotated(os.Stdout, prefix, strings.Repeat(sep, 80))
+}
+
+func printAnnotated(w io.Writer, prefix func() string, s string) {
+	fmt.Fprintf(w, "%s%s\n", prefix(), s)
 }
