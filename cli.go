@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -73,9 +74,8 @@ func main() {
 }
 
 func actionMain(c *cli.Context) {
-	if c.Bool("stdout") && c.Bool("stderr") {
-		fmt.Fprintln(os.Stderr, "Conflicting flags: -o|--stdout and -e|--stderr")
-		os.Exit(1)
+	if err := validateOptions(c); err != nil {
+		halt(err)
 	}
 
 	if c.Bool("help") {
@@ -97,10 +97,18 @@ func actionMain(c *cli.Context) {
 	}
 }
 
+func validateOptions(c *cli.Context) error {
+	if c.Bool("stdout") && c.Bool("stderr") {
+		return errors.New("Conflicting flags: -o|--stdout and -e|--stderr")
+	}
+	return nil
+}
+
 func annotatePipe(c *cli.Context) {
-	prog := "?"
-	stdoutPrefix, _ := preparePrefix(prog, c.String("prefix"), c.IsSet("color"), c.Bool("color"))
-	stdoutFormatter := func() string { return formatPrefix(prog, stdoutPrefix, os.Stdout) }
+	name := ">"
+	color := hashedColor(name)
+	stdoutPrefix, _ := preparePrefix(c.String("prefix"), color, c.IsSet("color"), c.Bool("color"))
+	stdoutFormatter := func() string { return formatPrefix(name, stdoutPrefix, os.Stdout) }
 
 	rw := newReadWriter(bufio.NewReader(os.Stdin), os.Stdout)
 
@@ -119,14 +127,15 @@ func annotatePipe(c *cli.Context) {
 
 func annotateCommand(c *cli.Context) {
 	prog := c.Args()[0]
-	stdoutPrefix, stderrPrefix := preparePrefix(prog, c.String("prefix"), c.IsSet("color"), c.Bool("color"))
-	stdoutFormatter := func() string { return formatPrefix(prog, stdoutPrefix, os.Stdout) }
-	stderrFormatter := func() string { return formatPrefix(prog, stderrPrefix, os.Stderr) }
+	color := hashedColor(name)
+	stdoutPrefix, stderrPrefix := preparePrefix(c.String("prefix"), color, c.IsSet("color"), c.Bool("color"))
+	stdoutFormatter := func() string { return formatPrefix(name, stdoutPrefix, os.Stdout) }
+	stderrFormatter := func() string { return formatPrefix(name, stderrPrefix, os.Stderr) }
 
 	stdoutAnnotator := func(rw *readWriter) { annotate(rw, stdoutFormatter) }
 	stderrAnnotator := func(rw *readWriter) { annotate(rw, stderrFormatter) }
 
-	args := c.Args()[1:]
+	prog, args := c.Args()[0], c.Args()[1:]
 	cmd := exec.Command(prog, args...)
 
 	// Pass-throughs
@@ -169,8 +178,7 @@ func annotateCommand(c *cli.Context) {
 	}
 }
 
-func preparePrefix(prog string, prefix string, coloredSet bool, colored bool) (string, string) {
-	color := hashedColor(prog)
+func preparePrefix(prefix string, color uint32, coloredSet bool, colored bool) (string, string) {
 	stdoutPrefix := prefix
 	stderrPrefix := prefix
 	hasStdout := terminal.IsTerminal(int(os.Stdout.Fd()))
@@ -186,12 +194,6 @@ func preparePrefix(prog string, prefix string, coloredSet bool, colored bool) (s
 	return stdoutPrefix, stderrPrefix
 }
 
-func splitArgs(a []string) (cmd string, args []string) {
-	if len(a) > 0 {
-		cmd = a[0]
 	}
-	if len(a) > 1 {
-		args = a[1:]
 	}
-	return
 }

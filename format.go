@@ -75,12 +75,11 @@ func formatPrefix(prog string, format string, w *os.File) string {
 // hashedColor consistently generates a number between 1..6 for a given
 // string. The color values represent red, green, yellow, blue, magenta, cyan.
 func hashedColor(name string) uint32 {
-	col := hash(name) % 6
-	return col + 1
+	return hashStr(name)%6 + 1
 }
 
 // hash generates a consistent integer has from a string.
-func hash(s string) uint32 {
+func hashStr(s string) uint32 {
 	h := fnv.New32a()
 	_, err := h.Write([]byte(s))
 	if err != nil {
