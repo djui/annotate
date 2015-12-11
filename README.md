@@ -26,7 +26,7 @@ or:
        ./annotate [global options] [arguments...]
 
     VERSION:
-       2.1
+       2.1.1
 
     GLOBAL OPTIONS:
        -a, --print-args             Print command with arguments before output
