@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 
 	"github.com/codegangsta/cli"
@@ -126,7 +127,7 @@ func annotatePipe(c *cli.Context) {
 }
 
 func annotateCommand(c *cli.Context) {
-	prog := c.Args()[0]
+	name := guessCommand(c.Args())
 	color := hashedColor(name)
 	stdoutPrefix, stderrPrefix := preparePrefix(c.String("prefix"), color, c.IsSet("color"), c.Bool("color"))
 	stdoutFormatter := func() string { return formatPrefix(name, stdoutPrefix, os.Stdout) }
@@ -194,6 +195,19 @@ func preparePrefix(prefix string, color uint32, coloredSet bool, colored bool) (
 	return stdoutPrefix, stderrPrefix
 }
 
+func guessCommand(args []string) string {
+	firstFlagIndex := -1
+
+	for i, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			firstFlagIndex = i
+			break
+		}
 	}
+
+	if firstFlagIndex > 1 {
+		return args[0] + " " + args[1]
 	}
+
+	return args[0]
 }
