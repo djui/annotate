@@ -13,7 +13,6 @@ import (
 )
 
 var version = "?"
-var defaultFormat = "%0 "
 
 func halt(err error) {
 	fmt.Fprintf(os.Stderr, "annotate: error: %v", err)
@@ -43,8 +42,10 @@ func main() {
 			Usage: "Print separator before and after output",
 		},
 		cli.StringFlag{
-			Name:  "p, prefix",
-			Usage: "Override the default prefix",
+			Name:   "p, prefix",
+			Value:  "%0 ",
+			EnvVar: "ANNOTATE_PREFIX",
+			Usage:  "Override the default prefix",
 		},
 		cli.BoolFlag{
 			Name:  "o, stdout",
@@ -106,11 +107,12 @@ func actionMain(c *cli.Context) {
 }
 
 func annotatePipe(c *cli.Context) {
-	name := "?"
-	prefix, color := getPrefixAndColor(c, name, defaultFormat)
-	stdoutPrefix, _ := preparePrefix(prefix, color, c.Bool("color"))
-	stdoutFormatter := func() string { return formatPrefix(name, stdoutPrefix, os.Stdout) }
+	prog := "?"
+	stdoutPrefix, _ := preparePrefix(prog, c.String("prefix"), !c.Bool("no-color"), c.Bool("color"))
+	stdoutFormatter := func() string { return formatPrefix(prog, stdoutPrefix, os.Stdout) }
+
 	rw := newReadWriter(bufio.NewReader(os.Stdin), os.Stdout)
+
 	if c.IsSet("print-separator") {
 		printSeparator(c.String("print-separator"), stdoutFormatter)
 	}
@@ -118,21 +120,23 @@ func annotatePipe(c *cli.Context) {
 	if c.IsSet("print-separator") {
 		printSeparator(c.String("print-separator"), stdoutFormatter)
 	}
+
 	if err != nil {
 		halt(err)
 	}
 }
 
 func annotateCommand(c *cli.Context) {
-	name, args := splitArgs(c.Args())
-	prefix, color := getPrefixAndColor(c, name, defaultFormat)
-	stdoutPrefix, stderrPrefix := preparePrefix(prefix, color, c.Bool("color"))
-	stdoutFormatter := func() string { return formatPrefix(name, stdoutPrefix, os.Stdout) }
-	stderrFormatter := func() string { return formatPrefix(name, stderrPrefix, os.Stderr) }
+	prog := c.Args()[0]
+	stdoutPrefix, stderrPrefix := preparePrefix(prog, c.String("prefix"), !c.Bool("no-color"), c.Bool("color"))
+	stdoutFormatter := func() string { return formatPrefix(prog, stdoutPrefix, os.Stdout) }
+	stderrFormatter := func() string { return formatPrefix(prog, stderrPrefix, os.Stderr) }
+
 	stdoutAnnotator := func(rw *readWriter) { annotate(rw, stdoutFormatter) }
 	stderrAnnotator := func(rw *readWriter) { annotate(rw, stderrFormatter) }
 
-	cmd := exec.Command(name, args...)
+	args := c.Args()[1:]
+	cmd := exec.Command(prog, args...)
 
 	// Pass-throughs
 	cmd.Env = os.Environ()
@@ -174,38 +178,21 @@ func annotateCommand(c *cli.Context) {
 	}
 }
 
-func getPrefixAndColor(c *cli.Context, name string, prefixDefault string) (prefix string, color uint32) {
-	prefix = prefixDefault
-	color = hashedColor(name)
-
-	if c.IsSet("prefix") {
-		prefix = c.String("prefix")
-	}
-
-	if c.Bool("no-color") {
-		color = 0
-	}
-
-	return
-}
-
-func preparePrefix(p string, color uint32, force bool) (stdoutPrefix string, stderrPrefix string) {
+func preparePrefix(prog string, prefix string, colored bool, forceColored bool) (string, string) {
+	color := hashedColor(prog)
+	stdoutPrefix := prefix
+	stderrPrefix := prefix
 	hasStdout := terminal.IsTerminal(int(os.Stdout.Fd()))
 	hasStderr := terminal.IsTerminal(int(os.Stderr.Fd()))
 
-	if color > 0 && (force || hasStdout) {
-		stdoutPrefix = fmt.Sprintf("\x1b[3%dm%s\x1b[0m", color, p)
-	} else {
-		stdoutPrefix = p
+	if forceColored || (colored && hasStdout) {
+		stdoutPrefix = fmt.Sprintf("\x1b[3%dm%s\x1b[0m", color, prefix)
+	}
+	if forceColored || (colored && hasStderr) {
+		stderrPrefix = fmt.Sprintf("\x1b[3%d;1m%s\x1b[0m", color, prefix)
 	}
 
-	if color > 0 && (force || hasStderr) {
-		stderrPrefix = fmt.Sprintf("\x1b[3%d;1m%s\x1b[0m", color, p)
-	} else {
-		stderrPrefix = p
-	}
-
-	return
+	return stdoutPrefix, stderrPrefix
 }
 
 func splitArgs(a []string) (cmd string, args []string) {
