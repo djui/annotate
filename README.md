@@ -26,12 +26,12 @@ or:
        ./annotate [global options] [arguments...]
 
     VERSION:
-       2.1.2
+       2.2
 
     GLOBAL OPTIONS:
        -a, --print-args             Print command with arguments before output
        -s, --print-separator "="    Print separator before and after output
-       -p, --prefix                 Override the default prefix
+       -p, --prefix "%0 "           Override the default prefix [$ANNOTATE_PREFIX]
        -o, --stdout                 Only annotate standard output
        -e, --stderr                 Only annotate standard error
        -c, --color                  Force colored output
