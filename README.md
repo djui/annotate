@@ -26,7 +26,7 @@ or:
        ./annotate [global options] [arguments...]
 
     VERSION:
-       2.1.1
+       2.1.2
 
     GLOBAL OPTIONS:
        -a, --print-args             Print command with arguments before output
@@ -37,3 +37,4 @@ or:
        -c, --color                  Force colored output
        -n, --no-color               No colored output
        -v, --version                Print the version
+       -h, --help                   Show help

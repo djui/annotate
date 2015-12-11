@@ -66,6 +66,10 @@ func main() {
 			Name:  "v, version",
 			Usage: "Print the version",
 		},
+		cli.BoolFlag{
+			Name:  "h, help",
+			Usage: "Show help",
+		},
 	}
 
 	app.RunAndExitOnError()
@@ -82,9 +86,14 @@ func actionMain(c *cli.Context) {
 		os.Exit(1)
 	}
 
+	if c.Bool("help") {
+		cli.ShowAppHelp(c)
+		return
+	}
+
 	if c.Bool("version") {
 		cli.ShowVersion(c)
-		os.Exit(0)
+		return
 	}
 
 	if len(c.Args()) > 0 {
