@@ -7,7 +7,9 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"syscall"
+	"time"
 
 	"github.com/codegangsta/cli"
 
@@ -15,6 +17,7 @@ import (
 )
 
 var version = "?"
+var defaultFormat = "%0 "
 
 func main() {
 	app := cli.NewApp()
@@ -84,20 +87,23 @@ func actionMain(c *cli.Context) {
 }
 
 func annotatePipe(c *cli.Context) {
-	prefix, color := getPrefixAndColor(c, ">>> ")
-	stdoutPrefix, _ := formatPrefix(prefix, color, c.Bool("color"))
+	name := "?"
+	prefix, color := getPrefixAndColor(c, name, defaultFormat)
+	stdoutPrefix, _ := preparePrefix(prefix, color, c.Bool("color"))
+	stdoutFormatter := func() string { return formatPrefix(stdoutPrefix, os.Stdout, name) }
 
 	r := bufio.NewReader(os.Stdin)
-	annotate(r, os.Stdout, stdoutPrefix)
+	annotate(r, os.Stdout, stdoutFormatter)
 }
 
 func annotateCommand(c *cli.Context) {
 	name, args := splitArgs(c.Args())
-
-	prefix, color := getPrefixAndColor(c, name+" ")
-	stdoutPrefix, stderrPrefix := formatPrefix(prefix, color, c.Bool("color"))
-	stdoutAnnotator := func(r io.Reader, w io.Writer) { annotate(r, w, stdoutPrefix) }
-	stderrAnnotator := func(r io.Reader, w io.Writer) { annotate(r, w, stderrPrefix) }
+	prefix, color := getPrefixAndColor(c, name, defaultFormat)
+	stdoutPrefix, stderrPrefix := preparePrefix(prefix, color, c.Bool("color"))
+	stdoutFormatter := func() string { return formatPrefix(stdoutPrefix, os.Stdout, name) }
+	stderrFormatter := func() string { return formatPrefix(stderrPrefix, os.Stderr, name) }
+	stdoutAnnotator := func(r io.Reader, w io.Writer) { annotate(r, w, stdoutFormatter) }
+	stderrAnnotator := func(r io.Reader, w io.Writer) { annotate(r, w, stderrFormatter) }
 
 	cmd := exec.Command(name, args...)
 
@@ -142,22 +148,22 @@ func splitArgs(a []string) (cmd string, args []string) {
 	return
 }
 
-func getPrefixAndColor(c *cli.Context, fallback string) (prefix string, color uint32) {
-	prefix = fallback
-	color = 0
+func getPrefixAndColor(c *cli.Context, name string, prefixDefault string) (prefix string, color uint32) {
+	prefix = prefixDefault
+	color = hashedColor(name)
 
 	if c.IsSet("prefix") {
 		prefix = c.String("prefix")
 	}
 
-	if !c.Bool("no-color") {
-		color = hashedColor(prefix)
+	if c.Bool("no-color") {
+		color = 0
 	}
 
 	return
 }
 
-func formatPrefix(p string, color uint32, force bool) (stdoutPrefix string, stderrPrefix string) {
+func preparePrefix(p string, color uint32, force bool) (stdoutPrefix string, stderrPrefix string) {
 	hasStdout := terminal.IsTerminal(int(os.Stdout.Fd()))
 	hasStderr := terminal.IsTerminal(int(os.Stderr.Fd()))
 
@@ -173,8 +179,71 @@ func formatPrefix(p string, color uint32, force bool) (stdoutPrefix string, stde
 		stderrPrefix = p
 	}
 
-	// TODO: Allow formatting string (like `date`)
 	return
+}
+
+func formatPrefix(format string, w *os.File, prog string) string {
+	t := time.Now()
+
+	var fd string
+	switch w {
+	case os.Stdout:
+		fd = "O"
+	case os.Stderr:
+		fd = "E"
+	case os.Stdin:
+		fd = "I"
+	default:
+		fd = "?"
+	}
+
+	var escaped bool
+	var out string
+	for _, c := range format {
+		if escaped {
+			switch c {
+			case '0':
+				out += path.Base(prog)
+			case '>':
+				out += fd
+			case 'd':
+				out += fmt.Sprintf("%02d", t.Day())
+			case 'F':
+				out += fmt.Sprintf("%04d-%02d-%02d", t.Year(), t.Month(), t.Day())
+			case 'H':
+				out += fmt.Sprintf("%02d", t.Hour())
+			case 'M':
+				out += fmt.Sprintf("%02d", t.Minute())
+			case 'm':
+				out += fmt.Sprintf("%02d", t.Month())
+			case 'N':
+				out += fmt.Sprintf("%02d", t.Nanosecond())
+			case 'S':
+				out += fmt.Sprintf("%02d", t.Second())
+			case 's':
+				out += fmt.Sprintf("%02d", t.Unix())
+			case 'T':
+				out += fmt.Sprintf("%02d:%02d:%02d", t.Hour(), t.Minute(), t.Second())
+			case 'Y':
+				out += fmt.Sprintf("%04d", t.Year())
+			case '%':
+				out += "%"
+			default:
+				out += "%" + string(c)
+			}
+			escaped = false
+		} else if c == '%' {
+			escaped = true
+		} else {
+			out += string(c)
+		}
+	}
+
+	if escaped {
+		out += "%"
+	}
+
+	return out
 }
 
 // hashedColor consistently generates a number between 1..6 for a given
@@ -203,11 +272,13 @@ func pipe(w io.Writer, f func(io.Reader, io.Writer)) io.Writer {
 }
 
 // annotate each line read from "r" with prefix and write to "w".
-func annotate(r io.Reader, w io.Writer, prefix string) {
+func annotate(r io.Reader, w io.Writer, f func() string) {
 	s := bufio.NewScanner(r)
+
 	for s.Scan() {
-		fmt.Fprintf(w, "%s%s\n", prefix, s.Bytes())
+		fmt.Fprintf(w, "%s%s\n", f(), s.Bytes())
 	}
+
 	if err := s.Err(); err != nil {
 		halt(err)
 	}

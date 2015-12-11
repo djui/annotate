@@ -3,6 +3,9 @@ LD_FLAGS?="-X main.version=$(VERSION)"
 
 all: build
 
+test:
+	go test
+
 build:
 	go build -ldflags $(LD_FLAGS)
 
