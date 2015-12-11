@@ -125,6 +125,10 @@ func annotateCommand(c *cli.Context) {
 
 	cmd := exec.Command(name, args...)
 
+	// Pass-throughs
+	cmd.Env = os.Environ()
+	cmd.Stdin = os.Stdin
+
 	if c.Bool("stdout") {
 		cmd.Stdout = pipe(os.Stdout, stdoutAnnotator)
 		cmd.Stderr = os.Stderr
@@ -135,9 +139,6 @@ func annotateCommand(c *cli.Context) {
 		cmd.Stdout = pipe(os.Stdout, stdoutAnnotator)
 		cmd.Stderr = pipe(os.Stderr, stderrAnnotator)
 	}
-
-	// Pass-through environment variables
-	cmd.Env = os.Environ()
 
 	if c.Bool("print-args") {
 		printArguments(c.Args(), stdoutFormatter)
