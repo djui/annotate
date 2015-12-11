@@ -55,13 +55,9 @@ func main() {
 			Name:  "e, stderr",
 			Usage: "Only annotate standard error",
 		},
-		cli.BoolFlag{
+		cli.BoolTFlag{
 			Name:  "c, color",
-			Usage: "Force colored output",
-		},
-		cli.BoolFlag{
-			Name:  "n, no-color",
-			Usage: "No colored output",
+			Usage: "Colorize prefix. Default on. If set, force colorize.",
 		},
 		cli.BoolFlag{
 			Name:  "v, version",
@@ -79,11 +75,6 @@ func main() {
 func actionMain(c *cli.Context) {
 	if c.Bool("stdout") && c.Bool("stderr") {
 		fmt.Fprintln(os.Stderr, "Conflicting flags: -o|--stdout and -e|--stderr")
-		os.Exit(1)
-	}
-
-	if c.Bool("color") && c.Bool("no-color") {
-		fmt.Fprintln(os.Stderr, "Conflicting flags: -c|--color and -n|--no-color")
 		os.Exit(1)
 	}
 
@@ -108,7 +99,7 @@ func actionMain(c *cli.Context) {
 
 func annotatePipe(c *cli.Context) {
 	prog := "?"
-	stdoutPrefix, _ := preparePrefix(prog, c.String("prefix"), !c.Bool("no-color"), c.Bool("color"))
+	stdoutPrefix, _ := preparePrefix(prog, c.String("prefix"), c.IsSet("color"), c.Bool("color"))
 	stdoutFormatter := func() string { return formatPrefix(prog, stdoutPrefix, os.Stdout) }
 
 	rw := newReadWriter(bufio.NewReader(os.Stdin), os.Stdout)
@@ -128,7 +119,7 @@ func annotatePipe(c *cli.Context) {
 
 func annotateCommand(c *cli.Context) {
 	prog := c.Args()[0]
-	stdoutPrefix, stderrPrefix := preparePrefix(prog, c.String("prefix"), !c.Bool("no-color"), c.Bool("color"))
+	stdoutPrefix, stderrPrefix := preparePrefix(prog, c.String("prefix"), c.IsSet("color"), c.Bool("color"))
 	stdoutFormatter := func() string { return formatPrefix(prog, stdoutPrefix, os.Stdout) }
 	stderrFormatter := func() string { return formatPrefix(prog, stderrPrefix, os.Stderr) }
 
@@ -178,17 +169,17 @@ func annotateCommand(c *cli.Context) {
 	}
 }
 
-func preparePrefix(prog string, prefix string, colored bool, forceColored bool) (string, string) {
+func preparePrefix(prog string, prefix string, coloredSet bool, colored bool) (string, string) {
 	color := hashedColor(prog)
 	stdoutPrefix := prefix
 	stderrPrefix := prefix
 	hasStdout := terminal.IsTerminal(int(os.Stdout.Fd()))
 	hasStderr := terminal.IsTerminal(int(os.Stderr.Fd()))
 
-	if forceColored || (colored && hasStdout) {
+	if colored && (coloredSet || hasStdout) {
 		stdoutPrefix = fmt.Sprintf("\x1b[3%dm%s\x1b[0m", color, prefix)
 	}
-	if forceColored || (colored && hasStderr) {
+	if colored && (coloredSet || hasStderr) {
 		stderrPrefix = fmt.Sprintf("\x1b[3%d;1m%s\x1b[0m", color, prefix)
 	}
 
