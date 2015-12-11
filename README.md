@@ -26,12 +26,12 @@ or:
        ./annotate [global options] [arguments...]
 
     VERSION:
-       ?
+       2.0
 
     GLOBAL OPTIONS:
-       --prefix, -p 	Override the default prefix
-       --stdout, -o		Only annotate standard output
-       --stderr, -e		Only annotate standard error
-       --no-color, -n	No colored output
-       --color, -c		Force colored output
-       --version, -v	print the version
+       -p, -prefix      Override the default prefix
+       -o, -stdout      Only annotate standard output
+       -e, -stderr      Only annotate standard error
+       -c, -color       Force colored output
+       -n, -no-color    No colored output
+       -v, -version     print the version
