@@ -22,6 +22,8 @@ func main() {
 	app.Usage = "Annotate a command's standard output and standard error."
 	app.Version = version
 	app.Action = actionMain
+	// Hide help otherwise `help` as the second paramater is not interpreted as
+	// first argument but as subcommand.
 	app.HideHelp = true
 
 	app.Flags = []cli.Flag{
