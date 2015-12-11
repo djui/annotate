@@ -25,6 +25,8 @@ func main() {
 	// Hide help otherwise `help` as the second paramater is not interpreted as
 	// first argument but as subcommand.
 	app.HideHelp = true
+	// The order of the version flag's short- and long-form are swapped.
+	app.HideVersion = true
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -47,6 +49,10 @@ func main() {
 			Name:  "n, no-color",
 			Usage: "    No colored output",
 		},
+		cli.BoolFlag{
+			Name:  "v, version",
+			Usage: "     Print the version",
+		},
 	}
 
 	app.RunAndExitOnError()
@@ -61,6 +67,11 @@ func actionMain(c *cli.Context) {
 	if c.Bool("color") && c.Bool("no-color") {
 		fmt.Fprintln(os.Stderr, "Conflicting flags: -c|--color and -n|--no-color")
 		os.Exit(1)
+	}
+
+	if c.Bool("version") {
+		cli.ShowVersion(c)
+		os.Exit(0)
 	}
 
 	if len(c.Args()) > 0 {
